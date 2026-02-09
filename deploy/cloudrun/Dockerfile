@@ -1,14 +1,15 @@
 # Stage 1: Build gemini-cli monorepo
 FROM node:20 AS builder
 WORKDIR /build
-COPY package.json package-lock.json ./
-COPY packages/ packages/
-COPY scripts/ scripts/
-COPY schemas/ schemas/
-RUN npm ci && npm run build
-RUN cd packages/core && npm pack && mv *.tgz /tmp/gemini-core.tgz
-RUN cd packages/cli && npm pack && mv *.tgz /tmp/gemini-cli.tgz
-RUN cd packages/a2a-server && npm pack && mv *.tgz /tmp/gemini-a2a-server.tgz
+COPY . .
+# --ignore-scripts skips the "prepare" hook (husky + bundle) which
+# would fail without a full git repo. We run the build explicitly.
+RUN npm ci --ignore-scripts \
+    && npm run generate \
+    && npm run build --workspaces
+RUN cd packages/core && npm pack && mv *.tgz /tmp/gemini-core.tgz \
+    && cd ../cli && npm pack && mv *.tgz /tmp/gemini-cli.tgz \
+    && cd ../a2a-server && npm pack && mv *.tgz /tmp/gemini-a2a-server.tgz
 
 # Stage 2: Build captain-hook (Rust binary)
 FROM rust:latest AS captain-hook-builder
