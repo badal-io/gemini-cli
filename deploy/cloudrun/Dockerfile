@@ -1,9 +1,13 @@
 # Stage 1: Build gemini-cli monorepo
 FROM node:20 AS builder
 WORKDIR /build
-COPY . .
+# Copy only what the build needs — avoids sending the full repo as context
+COPY package.json package-lock.json tsconfig.json ./
+COPY packages/ packages/
+COPY scripts/ scripts/
 # --ignore-scripts skips the "prepare" hook (husky + bundle) which
-# would fail without a full git repo. We run the build explicitly.
+# fails without a full git repo and esbuild.config.js.
+# We then run generate (gracefully handles missing git) and build each workspace.
 RUN npm ci --ignore-scripts \
     && npm run generate \
     && npm run build --workspaces
