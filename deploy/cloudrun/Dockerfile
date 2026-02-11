@@ -1,5 +1,5 @@
 # Stage 1: Build gemini-cli monorepo
-FROM node:20 AS builder
+FROM node:20-bookworm-slim AS builder
 WORKDIR /build
 # Copy only what the build needs — avoids sending the full repo as context
 COPY package.json package-lock.json tsconfig.json ./
@@ -25,32 +25,32 @@ WORKDIR /build
 RUN cargo build --release && rm -rf target/release/deps target/release/build target/release/.fingerprint
 
 # Stage 3: Build ai-plugin-translator
-FROM node:20 AS translator-builder
+FROM node:20-bookworm-slim AS translator-builder
 RUN npm install -g pnpm
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
 RUN git clone https://github.com/epiphytic/ai-plugin-translator.git /build
 WORKDIR /build
 RUN pnpm install && pnpm build
 
-# Stage 4: Final runtime image
-FROM gcr.io/cloudshell-images/cloudshell:latest
+# Stage 4: Final runtime image (multi-arch: amd64 + arm64)
+FROM node:20-bookworm-slim
 
-# Ensure Node.js 20+ is available
-# Cloud Shell may ship an older version; install from NodeSource if needed
-RUN if [ "$(node -v 2>/dev/null | cut -d. -f1 | tr -d v)" -lt 20 ] 2>/dev/null || ! command -v node >/dev/null 2>&1; then \
-      curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-      apt-get install -y nodejs; \
-    fi && \
-    node -v && npm -v
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      git \
+      curl \
+      socat \
+      ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install gh CLI if not already present
-RUN if ! command -v gh >/dev/null 2>&1; then \
-      curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
-        | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
-      echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
-        | tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
-      apt-get update && apt-get install -y gh && \
-      rm -rf /var/lib/apt/lists/*; \
-    fi
+# Install gh CLI (supports both amd64 and arm64)
+RUN ARCH="$(dpkg --print-architecture)" && \
+    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+      -o /usr/share/keyrings/githubcli-archive-keyring.gpg && \
+    echo "deb [arch=${ARCH} signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+      > /etc/apt/sources.list.d/github-cli.list && \
+    apt-get update && apt-get install -y --no-install-recommends gh && \
+    rm -rf /var/lib/apt/lists/*
 
 # Set up npm global prefix
 RUN mkdir -p /usr/local/share/npm-global
