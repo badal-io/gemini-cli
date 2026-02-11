@@ -1,14 +1,15 @@
 # Stage 1: Build gemini-cli monorepo
 FROM node:22-bookworm AS builder
 WORKDIR /build
-COPY package.json package-lock.json tsconfig.json ./
+COPY package.json package-lock.json tsconfig.json esbuild.config.js ./
 COPY packages/ packages/
 COPY scripts/ scripts/
 # --ignore-scripts skips the "prepare" hook (husky + bundle) which
 # fails without a full git repo and esbuild.config.js.
 RUN npm ci --ignore-scripts \
     && npm run generate \
-    && npm run build --workspaces
+    && npm run build --workspaces \
+    && node esbuild.config.js
 RUN cd packages/core && npm pack && mv *.tgz /tmp/gemini-core.tgz \
     && cd ../cli && npm pack && mv *.tgz /tmp/gemini-cli.tgz \
     && cd ../a2a-server && npm pack && mv *.tgz /tmp/gemini-a2a-server.tgz
@@ -97,7 +98,9 @@ COPY --from=builder /tmp/gemini-cli.tgz /tmp/gemini-cli.tgz
 COPY --from=builder /tmp/gemini-a2a-server.tgz /tmp/gemini-a2a-server.tgz
 RUN npm install -g /tmp/gemini-core.tgz /tmp/gemini-cli.tgz /tmp/gemini-a2a-server.tgz && \
     npm cache clean --force && \
-    rm -f /tmp/gemini-*.tgz
+    rm -f /tmp/gemini-*.tgz && \
+    ln -sf ../lib/node_modules/@google/gemini-cli-a2a-server/dist/a2a-server.mjs \
+      /usr/local/share/npm-global/bin/gemini-cli-a2a-server
 
 # Install beads (git-backed issue tracker)
 RUN npm install -g @anthropic/beads || npm install -g beads-cli || true
