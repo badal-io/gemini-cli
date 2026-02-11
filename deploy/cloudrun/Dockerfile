@@ -94,8 +94,8 @@ RUN npm install -g /tmp/gemini-core.tgz /tmp/gemini-cli.tgz /tmp/gemini-a2a-serv
     ln -sf ../lib/node_modules/@google/gemini-cli-a2a-server/dist/a2a-server.mjs \
       /usr/local/share/npm-global/bin/gemini-cli-a2a-server
 
-# Install beads (git-backed issue tracker)
-RUN npm install -g @anthropic/beads || npm install -g beads-cli || true
+# Install beads (git-backed issue tracker) — https://github.com/steveyegge/beads
+RUN npm install -g @beads/bd || true
 
 # Install extensions
 RUN mkdir -p /root/.gemini/extensions
