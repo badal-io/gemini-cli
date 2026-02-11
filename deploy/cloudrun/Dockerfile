@@ -14,21 +14,13 @@ RUN cd packages/core && npm pack && mv *.tgz /tmp/gemini-core.tgz \
     && cd ../cli && npm pack && mv *.tgz /tmp/gemini-cli.tgz \
     && cd ../a2a-server && npm pack && mv *.tgz /tmp/gemini-a2a-server.tgz
 
-# Stage 2: Build hookwise (Rust binary, formerly captain-hook)
-# ort_sys (ONNX Runtime) fails to link on arm64 bookworm, so only build on amd64.
-FROM rust:slim-bookworm AS hookwise-builder
-ARG TARGETARCH
-RUN apt-get update && apt-get install -y --no-install-recommends git pkg-config libssl-dev g++ && rm -rf /var/lib/apt/lists/*
-RUN rm -rf /usr/local/rustup/toolchains/*/share/doc
-RUN git clone --depth 1 https://github.com/epiphytic/captain-hook.git /build
-WORKDIR /build
-RUN if [ "$TARGETARCH" = "amd64" ]; then \
-      cargo build --release && rm -rf target/release/deps target/release/build target/release/.fingerprint; \
-    else \
-      mkdir -p target/release && touch target/release/hookwise; \
-    fi
+# TODO: hookwise (Rust binary, formerly captain-hook) is temporarily disabled.
+# The ort_sys crate (ONNX Runtime) fails to link on both amd64 and arm64 with
+# rust:slim-bookworm due to glibc/C++ ABI incompatibilities. Re-enable once
+# upstream fixes the build or we find a compatible Rust base image.
+# See: https://github.com/badal-io/gemini-cli/pull/2
 
-# Stage 3: Build ai-plugin-translator
+# Stage 2: Build ai-plugin-translator (was Stage 3)
 FROM node:22-bookworm-slim AS translator-builder
 RUN npm install -g pnpm
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
@@ -36,7 +28,7 @@ RUN git clone https://github.com/epiphytic/ai-plugin-translator.git /build
 WORKDIR /build
 RUN pnpm install && pnpm build
 
-# Stage 4: Final runtime image (multi-arch: amd64 + arm64)
+# Stage 3: Final runtime image (multi-arch: amd64 + arm64)
 FROM node:22-bookworm
 
 # Install base runtime dependencies
@@ -111,9 +103,9 @@ RUN mkdir -p /root/.gemini/extensions
 # ai-plugin-translator extension
 COPY --from=translator-builder /build /root/.gemini/extensions/ai-plugin-translator
 
-# hookwise extension (binary name: hookwise, formerly captain-hook)
-COPY --from=hookwise-builder /build/target/release/hookwise /root/.gemini/extensions/captain-hook/captain-hook
-COPY --from=hookwise-builder /build/.claude-plugin /root/.gemini/extensions/captain-hook/.claude-plugin
+# TODO: hookwise extension disabled (see comment at top of file)
+# COPY --from=hookwise-builder /build/target/release/hookwise /root/.gemini/extensions/captain-hook/captain-hook
+# COPY --from=hookwise-builder /build/.claude-plugin /root/.gemini/extensions/captain-hook/.claude-plugin
 
 # Copy settings and entrypoint
 COPY deploy/cloudrun/settings.json /root/.gemini/settings.json
