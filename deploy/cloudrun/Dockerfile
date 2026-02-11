@@ -14,12 +14,18 @@ RUN cd packages/core && npm pack && mv *.tgz /tmp/gemini-core.tgz \
     && cd ../a2a-server && npm pack && mv *.tgz /tmp/gemini-a2a-server.tgz
 
 # Stage 2: Build hookwise (Rust binary, formerly captain-hook)
+# ort_sys (ONNX Runtime) fails to link on arm64 bookworm, so only build on amd64.
 FROM rust:slim-bookworm AS hookwise-builder
+ARG TARGETARCH
 RUN apt-get update && apt-get install -y --no-install-recommends git pkg-config libssl-dev g++ && rm -rf /var/lib/apt/lists/*
 RUN rm -rf /usr/local/rustup/toolchains/*/share/doc
 RUN git clone --depth 1 https://github.com/epiphytic/captain-hook.git /build
 WORKDIR /build
-RUN cargo build --release && rm -rf target/release/deps target/release/build target/release/.fingerprint
+RUN if [ "$TARGETARCH" = "amd64" ]; then \
+      cargo build --release && rm -rf target/release/deps target/release/build target/release/.fingerprint; \
+    else \
+      mkdir -p target/release && touch target/release/hookwise; \
+    fi
 
 # Stage 3: Build ai-plugin-translator
 FROM node:22-bookworm-slim AS translator-builder
