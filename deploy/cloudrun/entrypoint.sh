@@ -28,6 +28,7 @@ echo "Workspace: ${CODER_AGENT_WORKSPACE_PATH}"
 # the file basename (a2a-server.mjs), which breaks the isMainModule check.
 A2A_SERVER_MJS="$(dirname "$(readlink -f "$(which gemini-cli-a2a-server)")")/a2a-server.mjs"
 node "$A2A_SERVER_MJS" &
+
 A2A_PID=$!
 
 # Wait for the server to be ready
@@ -51,5 +52,9 @@ fi
 
 # Forward traffic from 0.0.0.0:$PORT to localhost:$INTERNAL_PORT
 # socat handles connection forwarding for Cloud Run's health checks and requests
+<<<<<<< HEAD
 # Node.js may bind to IPv6 ::1; socat must connect to the right address family
 exec socat TCP-LISTEN:${LISTEN_PORT},fork,reuseaddr,bind=0.0.0.0 TCP6:[::1]:${INTERNAL_PORT}
+=======
+exec socat TCP-LISTEN:${LISTEN_PORT},fork,reuseaddr,bind=0.0.0.0 TCP:localhost:${INTERNAL_PORT}
+>>>>>>> 66582126c (feat(deploy): Cloud Run A2A agent with Backstage integration (#1))
