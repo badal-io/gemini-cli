@@ -8,7 +8,10 @@ COPY scripts/ scripts/
 # fails without a full git repo and esbuild.config.js.
 RUN npm ci --ignore-scripts \
     && npm run generate \
-    && npm run build --workspaces \
+    && npm run build --workspace @google/gemini-cli-devtools \
+    && npm run build --workspace @google/gemini-cli-core \
+    && npm run build --workspace @google/gemini-cli \
+    && npm run build --workspace @google/gemini-cli-a2a-server \
     && node esbuild.config.js
 RUN cd packages/core && npm pack && mv *.tgz /tmp/gemini-core.tgz \
     && cd ../cli && npm pack && mv *.tgz /tmp/gemini-cli.tgz \
