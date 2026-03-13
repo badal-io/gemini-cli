@@ -32,10 +32,13 @@ WORKDIR /build
 RUN pnpm install && pnpm build
 
 # Stage 3: Final runtime image (multi-arch: amd64 + arm64)
-FROM node:22-bookworm
+# Use -slim to avoid pulling in imagemagick, libheif, libde265, openexr,
+# openjpeg, and other image-processing libraries with known CVEs that
+# are not needed for a CLI agent.
+FROM node:22-bookworm-slim
 
-# Install base runtime dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Install base runtime dependencies and apply all available security patches
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
       git \
       curl \
       socat \
@@ -48,13 +51,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       python3-venv \
     && rm -rf /var/lib/apt/lists/*
 
+# Upgrade Python packages with known vulnerabilities
+RUN python3 -m pip install --no-cache-dir --break-system-packages \
+      'pip>=26' \
+      'setuptools>=78.1.1' \
+      'wheel>=0.46.2' \
+      'cryptography>=46.0.5'
+
 # Install GitHub CLI
 RUN ARCH="$(dpkg --print-architecture)" && \
     curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
       -o /usr/share/keyrings/githubcli-archive-keyring.gpg && \
     echo "deb [arch=${ARCH} signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
       > /etc/apt/sources.list.d/github-cli.list && \
-    apt-get update && apt-get install -y --no-install-recommends gh && \
+    apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends gh && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Google Cloud SDK (all components)
@@ -62,7 +72,7 @@ RUN curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg \
       | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg && \
     echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" \
       > /etc/apt/sources.list.d/google-cloud-sdk.list && \
-    apt-get update && apt-get install -y --no-install-recommends \
+    apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
       google-cloud-cli \
       google-cloud-cli-gke-gcloud-auth-plugin \
       google-cloud-cli-cloud-run-proxy \
@@ -74,7 +84,7 @@ RUN ARCH="$(dpkg --print-architecture)" && \
       | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg && \
     echo "deb [arch=${ARCH} signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
       > /etc/apt/sources.list.d/hashicorp.list && \
-    apt-get update && apt-get install -y --no-install-recommends terraform vault && \
+    apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends terraform vault && \
     rm -rf /var/lib/apt/lists/*
 
 # Install bun
