@@ -7,8 +7,10 @@ INTERNAL_PORT=8081
 export CODER_AGENT_PORT="$INTERNAL_PORT"
 export CODER_AGENT_WORKSPACE_PATH="${CODER_AGENT_WORKSPACE_PATH:-/workspace}"
 
-# Vertex AI authentication via Workload Identity
-export USE_CCPA="true"
+# Vertex AI authentication via Workload Identity (skip if GEMINI_API_KEY is set)
+if [[ -z "${GEMINI_API_KEY:-}" ]]; then
+  export USE_CCPA="true"
+fi
 export GOOGLE_CLOUD_PROJECT="${GOOGLE_CLOUD_PROJECT:-$(curl -s -H 'Metadata-Flavor: Google' http://metadata.google.internal/computeMetadata/v1/project/project-id 2>/dev/null || echo '')}"
 
 # Headless operation
@@ -52,9 +54,5 @@ fi
 
 # Forward traffic from 0.0.0.0:$PORT to localhost:$INTERNAL_PORT
 # socat handles connection forwarding for Cloud Run's health checks and requests
-<<<<<<< HEAD
-# Node.js may bind to IPv6 ::1; socat must connect to the right address family
+# Node.js (v22+) binds to IPv6 ::1 by default; socat must connect accordingly
 exec socat TCP-LISTEN:${LISTEN_PORT},fork,reuseaddr,bind=0.0.0.0 TCP6:[::1]:${INTERNAL_PORT}
-=======
-exec socat TCP-LISTEN:${LISTEN_PORT},fork,reuseaddr,bind=0.0.0.0 TCP:localhost:${INTERNAL_PORT}
->>>>>>> 66582126c (feat(deploy): Cloud Run A2A agent with Backstage integration (#1))
