@@ -116,6 +116,12 @@ RUN mkdir -p /root/.gemini/extensions
 # ai-plugin-translator extension
 COPY --from=translator-builder /build /root/.gemini/extensions/ai-plugin-translator
 
+# File Search extension
+COPY packages/file-search-extension /root/.gemini/extensions/file-search-extension
+RUN cd /root/.gemini/extensions/file-search-extension && \
+    npm install --omit=dev && \
+    npm cache clean --force
+
 # TODO: hookwise extension disabled (see comment at top of file)
 # COPY --from=hookwise-builder /build/target/release/hookwise /root/.gemini/extensions/captain-hook/captain-hook
 # COPY --from=hookwise-builder /build/.claude-plugin /root/.gemini/extensions/captain-hook/.claude-plugin
