@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "BeforeAgent": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${extensionPath}/scripts/before-agent.js"
+          }
+        ]
+      }
+    ]
+  }
+}
