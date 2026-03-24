@@ -6,7 +6,19 @@
     "fileSearch": {
       "command": "node",
       "args": ["${extensionPath}${/}src${/}server.js"],
-      "cwd": "${extensionPath}"
+      "cwd": "${extensionPath}",
+      "env": {
+        "FILE_SEARCH_API_KEY": "${FILE_SEARCH_API_KEY}",
+        "FILE_SEARCH_GOOGLE_ACCESS_TOKEN": "${FILE_SEARCH_GOOGLE_ACCESS_TOKEN}",
+        "FILE_SEARCH_AUTH_MODE": "${FILE_SEARCH_AUTH_MODE}",
+        "FILE_SEARCH_STORE_NAME": "${FILE_SEARCH_STORE_NAME}",
+        "FILE_SEARCH_REPO": "${FILE_SEARCH_REPO}",
+        "FILE_SEARCH_SOURCE_REPOSITORY": "${FILE_SEARCH_SOURCE_REPOSITORY}",
+        "FILE_SEARCH_MODEL": "${FILE_SEARCH_MODEL}",
+        "FILE_SEARCH_API_BASE_URL": "${FILE_SEARCH_API_BASE_URL}",
+        "GEMINI_API_KEY": "${GEMINI_API_KEY}",
+        "GOOGLE_ACCESS_TOKEN": "${GOOGLE_ACCESS_TOKEN}"
+      }
     }
   }
 }
