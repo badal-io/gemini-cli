@@ -15,6 +15,18 @@ import {
 } from './file-search-client.js';
 
 const client = new FileSearchClient();
+const MCP_SERVER_NAME = 'fileSearch';
+const QUALIFIED_TOOL_NAMES = {
+  searchStore: `mcp_${MCP_SERVER_NAME}_search_store`,
+  fetchFileContext: `mcp_${MCP_SERVER_NAME}_fetch_file_context`,
+  fetchSymbolContext: `mcp_${MCP_SERVER_NAME}_fetch_symbol_context`,
+  expandRelatedContext: `mcp_${MCP_SERVER_NAME}_expand_related_context`,
+};
+const FOLLOW_UP_TOOL_NAMES = [
+  QUALIFIED_TOOL_NAMES.fetchFileContext,
+  QUALIFIED_TOOL_NAMES.fetchSymbolContext,
+  QUALIFIED_TOOL_NAMES.expandRelatedContext,
+].join(', ');
 
 const NextRetrievalSchema = z.object({
   tool: z.string(),
@@ -285,7 +297,7 @@ function buildSearchPrompt(query, maxResults) {
     `Return at most ${maxResults} candidate files or contexts.`,
     'Be conservative and prefer narrow retrieval.',
     'If the query is ambiguous or the retrieved evidence looks partial, set insufficientContext to true and recommend follow-up retrieval steps.',
-    'Every recommendedNextTool must be one of: fetch_file_context, fetch_symbol_context, expand_related_context.',
+    `Every recommendedNextTool must be one of: ${FOLLOW_UP_TOOL_NAMES}.`,
     'Return JSON only.',
   ].join('\n');
 }
@@ -297,6 +309,7 @@ function buildFileContextPrompt(filePath, task) {
     `Task: ${task || 'Explain the most relevant context from this file.'}`,
     'Summarize only evidence supported by the retrieved chunks.',
     'If the chunks look partial, mention what is missing and which file or symbol should be fetched next.',
+    `When recommending a follow-up tool in nextRetrievals, use one of: ${FOLLOW_UP_TOOL_NAMES}.`,
     'Return JSON only.',
   ].join('\n');
 }
@@ -309,6 +322,7 @@ function buildSymbolContextPrompt(symbol, filePath, task) {
     `Task: ${task || 'Locate the most relevant declaration, usage, or surrounding context.'}`,
     'Prefer declarations and semantically closest usages.',
     'If the symbol appears ambiguous or incomplete, recommend bounded follow-up retrieval.',
+    `When recommending a follow-up tool in nextRetrievals, use one of: ${FOLLOW_UP_TOOL_NAMES}.`,
     'Return JSON only.',
   ]
     .filter(Boolean)
@@ -323,6 +337,7 @@ function buildExpandPrompt(seedFiles, reason, task, maxResults) {
     `Task: ${task || 'Find the most likely adjacent files to inspect next.'}`,
     `Return at most ${maxResults} related files.`,
     'Prefer callers, callees, definitions, imports, exported types, or implementation neighbors.',
+    `When recommending a follow-up tool in nextRetrievals, use one of: ${FOLLOW_UP_TOOL_NAMES}.`,
     'Return JSON only.',
   ].join('\n');
 }

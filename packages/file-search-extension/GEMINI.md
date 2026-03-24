@@ -9,10 +9,18 @@ Use it when:
 
 Retrieval strategy:
 - Search first and fetch narrowly second.
-- Prefer `search_store` to locate likely files or concepts before calling a more specific fetch tool.
-- Use `fetch_file_context` when you already know the file path you want.
-- Use `fetch_symbol_context` when the task is centered on a declaration, type, function, or symbol name.
-- Use `expand_related_context` when the first retrieval shows the context is partial or points to neighboring files.
+- Use the MCP-qualified tool names exposed in the active registry for this extension:
+  `mcp_fileSearch_search_store`, `mcp_fileSearch_fetch_file_context`,
+  `mcp_fileSearch_fetch_symbol_context`, and
+  `mcp_fileSearch_expand_related_context`.
+- Prefer `mcp_fileSearch_search_store` to locate likely files or concepts before
+  calling a more specific fetch tool.
+- Use `mcp_fileSearch_fetch_file_context` when you already know the file path you
+  want.
+- Use `mcp_fileSearch_fetch_symbol_context` when the task is centered on a
+  declaration, type, function, or symbol name.
+- Use `mcp_fileSearch_expand_related_context` when the first retrieval shows the
+  context is partial or points to neighboring files.
 
 When to do follow-up retrieval:
 - the retrieved answer says context is incomplete
