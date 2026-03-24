@@ -36,10 +36,20 @@ interface ExtensionConfig {
   excludeTools?: string[];
 }
 
+type VariableContext = {
+  [key: string]: string | undefined;
+};
+
+const UNMARSHALL_KEY_IGNORE_LIST: Set<string> = new Set<string>([
+  '__proto__',
+  'constructor',
+  'prototype',
+]);
+
 export function loadExtensions(workspaceDir: string): GeminiCLIExtension[] {
   const allExtensions = [
-    ...loadExtensionsFromDir(workspaceDir),
-    ...loadExtensionsFromDir(homedir()),
+    ...loadExtensionsFromDir(workspaceDir, workspaceDir),
+    ...loadExtensionsFromDir(homedir(), workspaceDir),
   ];
 
   const uniqueExtensions: GeminiCLIExtension[] = [];
@@ -57,7 +67,10 @@ export function loadExtensions(workspaceDir: string): GeminiCLIExtension[] {
   return uniqueExtensions;
 }
 
-function loadExtensionsFromDir(dir: string): GeminiCLIExtension[] {
+function loadExtensionsFromDir(
+  dir: string,
+  workspaceDir: string,
+): GeminiCLIExtension[] {
   const extensionsDir = path.join(dir, EXTENSIONS_DIRECTORY_NAME);
   if (!fs.existsSync(extensionsDir)) {
     return [];
@@ -67,7 +80,7 @@ function loadExtensionsFromDir(dir: string): GeminiCLIExtension[] {
   for (const subdir of fs.readdirSync(extensionsDir)) {
     const extensionDir = path.join(extensionsDir, subdir);
 
-    const extension = loadExtension(extensionDir);
+    const extension = loadExtension(extensionDir, workspaceDir);
     if (extension != null) {
       extensions.push(extension);
     }
@@ -75,7 +88,10 @@ function loadExtensionsFromDir(dir: string): GeminiCLIExtension[] {
   return extensions;
 }
 
-function loadExtension(extensionDir: string): GeminiCLIExtension | null {
+function loadExtension(
+  extensionDir: string,
+  workspaceDir: string,
+): GeminiCLIExtension | null {
   if (!fs.statSync(extensionDir).isDirectory()) {
     logger.error(
       `Warning: unexpected file ${extensionDir} in extensions directory.`,
@@ -94,7 +110,13 @@ function loadExtension(extensionDir: string): GeminiCLIExtension | null {
   try {
     const configContent = fs.readFileSync(configFilePath, 'utf-8');
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-    const config = JSON.parse(configContent) as ExtensionConfig;
+    const rawConfig = JSON.parse(configContent) as ExtensionConfig;
+    const config = recursivelyHydrateStrings(rawConfig, {
+      extensionPath: extensionDir,
+      workspacePath: workspaceDir,
+      '/': path.sep,
+      pathSeparator: path.sep,
+    });
     if (!config.name || !config.version) {
       logger.error(
         `Invalid extension config in ${configFilePath}: missing name or version.`,
@@ -151,4 +173,43 @@ export function loadInstallMetadata(
     );
     return undefined;
   }
+}
+
+function hydrateString(str: string, context: VariableContext): string {
+  const regex = /\${(.*?)}/g;
+  return str.replace(regex, (match, key) =>
+    context[key] == null ? match : context[key],
+  );
+}
+
+function recursivelyHydrateStrings<T>(obj: T, values: VariableContext): T {
+  if (typeof obj === 'string') {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+    return hydrateString(obj, values) as unknown as T;
+  }
+  if (Array.isArray(obj)) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+    return obj.map((item) =>
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      recursivelyHydrateStrings(item, values),
+    ) as unknown as T;
+  }
+  if (typeof obj === 'object' && obj !== null) {
+    const newObj: Record<string, unknown> = {};
+    for (const key in obj) {
+      if (
+        !UNMARSHALL_KEY_IGNORE_LIST.has(key) &&
+        Object.prototype.hasOwnProperty.call(obj, key)
+      ) {
+        newObj[key] = recursivelyHydrateStrings(
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+          (obj as Record<string, unknown>)[key],
+          values,
+        );
+      }
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+    return newObj as T;
+  }
+  return obj;
 }
