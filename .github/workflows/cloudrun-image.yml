@@ -1,6 +1,7 @@
 name: 'Cloud Run: A2A Image'
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - 'badal'
@@ -8,6 +9,7 @@ on:
       - '**'
     paths:
       - 'deploy/cloudrun/**'
+      - 'packages/file-search-extension/**'
       - 'packages/core/**'
       - 'packages/cli/**'
       - 'packages/a2a-server/**'
@@ -17,6 +19,7 @@ on:
       - 'main'
     paths:
       - 'deploy/cloudrun/**'
+      - 'packages/file-search-extension/**'
       - 'packages/core/**'
       - 'packages/cli/**'
       - 'packages/a2a-server/**'
