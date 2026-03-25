@@ -6,6 +6,7 @@
 
 const DEFAULT_BASE_URL = 'https://generativelanguage.googleapis.com';
 export const DEFAULT_FILE_SEARCH_MODEL = 'gemini-3-flash-preview';
+const FILE_SEARCH_LIST_PAGE_SIZE = 20;
 
 export function getRuntimeConfig(env = process.env) {
   const apiKey = env.FILE_SEARCH_API_KEY || env.GEMINI_API_KEY;
@@ -209,7 +210,7 @@ export class FileSearchClient {
     do {
       const response = await this.request('fileSearchStores', {
         searchParams: {
-          pageSize: 100,
+          pageSize: FILE_SEARCH_LIST_PAGE_SIZE,
           pageToken,
         },
       });
@@ -258,7 +259,7 @@ export class FileSearchClient {
     do {
       const response = await this.request(`${storeName}/documents`, {
         searchParams: {
-          pageSize: 100,
+          pageSize: FILE_SEARCH_LIST_PAGE_SIZE,
           pageToken,
         },
       });

@@ -86,7 +86,7 @@ describe('FileSearchClient', () => {
     await client.resolveStoreResourceName();
 
     expect(fetchImpl).toHaveBeenCalledWith(
-      'https://generativelanguage.googleapis.com/v1beta/fileSearchStores?pageSize=100',
+      'https://generativelanguage.googleapis.com/v1beta/fileSearchStores?pageSize=20',
       expect.objectContaining({
         headers: expect.objectContaining({
           'x-goog-api-key': 'api-key',
@@ -115,7 +115,7 @@ describe('FileSearchClient', () => {
     await client.resolveStoreResourceName();
 
     expect(fetchImpl).toHaveBeenCalledWith(
-      'https://generativelanguage.googleapis.com/v1beta/fileSearchStores?pageSize=100',
+      'https://generativelanguage.googleapis.com/v1beta/fileSearchStores?pageSize=20',
       expect.objectContaining({
         headers: expect.objectContaining({
           Authorization: 'Bearer google-token',
@@ -160,6 +160,10 @@ describe('FileSearchClient', () => {
     });
 
     const matches = await client.findDocumentsByFilePath('src/router.ts');
+    expect(fetchImpl).toHaveBeenCalledWith(
+      'https://generativelanguage.googleapis.com/v1beta/fileSearchStores/repo/documents?pageSize=20',
+      expect.anything(),
+    );
     expect(matches[0].filePath).toBe('src/router.ts');
     expect(matches[1].filePath).toBe(
       'plugins/gemini-agent-backend/src/router.ts',
